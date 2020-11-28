@@ -247,3 +247,15 @@ class MaxUnpooling2D(Layer):
         values = K.reshape(updates, [updates_size])
         ret = tf.scatter_nd(indices, values, output_shape)
         return ret
+
+    def compute_output_shape(self, input_shape):
+        mask_shape = input_shape[1]
+        output_shape = [mask_shape[0], mask_shape[1] * self.size[0], mask_shape[2] * self.size[1], mask_shape[3]]
+        return tuple(output_shape)
+    
+    def get_config(self):
+        config = super(MaxUnpooling2D, self).get_config()
+        config.update({
+            'size': self.size,
+        })
+        return config
