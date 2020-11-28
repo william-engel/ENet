@@ -215,9 +215,16 @@ def bottleneck(input, filters, kernel_size, dropout_rate, name, dilation_rate = 
 
   return x
 
-
 class MaxUnpooling2D(Layer):
-
+    '''Inversion of MaxPooling with indices.
+    
+    # References
+        [SegNet: A Deep Convolutional Encoder-Decoder Architecture for Image Segmentation](http://arxiv.org/abs/1511.00561)
+    
+    # related code:
+        https://github.com/PavlosMelissinos/enet-keras
+        https://github.com/ykamikawa/SegNet
+    '''
     def __init__(self, size=(2, 2), **kwargs):
         super(MaxUnpooling2D, self).__init__(**kwargs)
         self.size = conv_utils.normalize_tuple(size, 2, 'size')
@@ -247,7 +254,7 @@ class MaxUnpooling2D(Layer):
         values = K.reshape(updates, [updates_size])
         ret = tf.scatter_nd(indices, values, output_shape)
         return ret
-
+    
     def compute_output_shape(self, input_shape):
         mask_shape = input_shape[1]
         output_shape = [mask_shape[0], mask_shape[1] * self.size[0], mask_shape[2] * self.size[1], mask_shape[3]]
