@@ -12,6 +12,77 @@ from tensorflow.python.keras import backend as K
 from tensorflow.keras.metrics import MeanIoU
 from tensorflow.keras.losses import categorical_crossentropy
 
+def ENet_Encoder(input_shape = None, input_tensor = None, name = 'encoder'):
+
+    ## INPUT
+    if input_tensor is None:
+      input = Input(shape = input_shape)
+    else:
+      input = input_tensor
+
+    ## INITIAL
+    x = initial(input, name = "initial")
+
+    ## STAGE 1
+    x, idx_1 = bottleneck(input = input, filters = 64, kernel_size = 3, dropout_rate = 0.01, downsampling=True, name = "bn1.0")
+    x = bottleneck(input = x, filters = 64, kernel_size = 3, dropout_rate = 0.01, name = "bn1.1")
+    x = bottleneck(input = x, filters = 64, kernel_size = 3, dropout_rate = 0.01, name = "bn1.2")
+    x = bottleneck(input = x, filters = 64, kernel_size = 3, dropout_rate = 0.01, name = "bn1.3")
+    x = bottleneck(input = x, filters = 64, kernel_size = 3, dropout_rate = 0.01, name = "bn1.4")
+
+    ## STAGE 2
+    x, idx_2 = bottleneck(input = x, filters = 128, kernel_size = 3, dropout_rate = 0.1, downsampling=True, name = "bn2.0")
+    x = bottleneck(input = x, filters = 128, kernel_size = 3, dropout_rate = 0.1, name = "bn2.1")  
+    x = bottleneck(input = x, filters = 128, kernel_size = 3, dropout_rate = 0.1, dilation_rate = 2, dilated = True, name = "bn2.2")
+    x = bottleneck(input = x, filters = 128, kernel_size = 5, dropout_rate = 0.1, asymmetric = True, name = "bn2.3")
+    x = bottleneck(input = x, filters = 128, kernel_size = 3, dropout_rate = 0.1, dilation_rate = 4, dilated = True, name = "bn2.4")
+    x = bottleneck(input = x, filters = 128, kernel_size = 3, dropout_rate = 0.1, name = "bn2.5")
+    x = bottleneck(input = x, filters = 128, kernel_size = 3, dropout_rate = 0.1, dilation_rate = 8, dilated = True, name = "bn2.6")
+    x = bottleneck(input = x, filters = 128, kernel_size = 5, dropout_rate = 0.1, asymmetric = True, name = "bn2.7")
+    output = bottleneck(input = x, filters = 128, kernel_size = 3, dropout_rate = 0.1, dilation_rate = 16, dilated = True, name = "bn2.8")
+
+    model = Model(inputs = [input], outputs = [output, idx_2, idx_1], name = name)
+
+    return model
+
+def ENet_Decoder(input_shape = None, input_tensor = None, include_top=True, classifier_activation='softmax', num_classes=10, name = 'decoder'):
+
+    ## INPUT
+    if input_tensor is None:
+      inputs = [Input(shape = shape) for shape in input_shape]
+    else:
+      inputs = [Input(tensor = tensor) for tensor in input_tensor]
+
+
+    ## STAGE 3
+    x = bottleneck(input = inputs[0], filters = 128, kernel_size = 3, dropout_rate = 0.1, name = "bn3.0")  
+    x = bottleneck(input = x, filters = 128, kernel_size = 3, dropout_rate = 0.1, dilation_rate = 2, dilated = True, name = "bn3.1")
+    x = bottleneck(input = x, filters = 128, kernel_size = 5, dropout_rate = 0.1, asymmetric = True, name = "bn3.2")
+    x = bottleneck(input = x, filters = 128, kernel_size = 3, dropout_rate = 0.1, dilation_rate = 4, dilated = True, name = "bn3.3")
+    x = bottleneck(input = x, filters = 128, kernel_size = 3, dropout_rate = 0.1, name = "bn3.4")
+    x = bottleneck(input = x, filters = 128, kernel_size = 3, dropout_rate = 0.1, dilation_rate = 8, dilated = True, name = "bn.5")
+    x = bottleneck(input = x, filters = 128, kernel_size = 5, dropout_rate = 0.1, asymmetric = True, name = "bn3.6")
+    x = bottleneck(input = x, filters = 128, kernel_size = 3, dropout_rate = 0.1, dilation_rate = 16, dilated = True, name = "bn3.7")
+
+    ## STAGE 4
+    x = bottleneck(input = x, filters = 64, kernel_size = 3, dropout_rate = 0.1, idx = inputs[1], upsampling = True, name = "bn4.0")
+    x = bottleneck(input = x, filters = 64, kernel_size = 3, dropout_rate = 0.1, name = "bn4.1")
+    x = bottleneck(input = x, filters = 64, kernel_size = 3, dropout_rate = 0.1, name = "bn4.2") 
+
+    ## STAGE 5
+    x = bottleneck(input = x, filters = 16, kernel_size = 3, dropout_rate = 0.1, idx = inputs[2], upsampling = True, name = "bn5.0")
+    x = bottleneck(input = x, filters = 16, kernel_size = 3, dropout_rate = 0.1, name = "bn5.1")  
+
+    ## OUTPUT
+    if include_top:
+        x = Conv2DTranspose(filters = num_classes, kernel_size = (2,2), strides = (2,2), padding = 'same')(x)
+        output = Activation(classifier_activation)(x)
+    else:
+        output = x
+
+    model = Model(inputs = inputs, outputs = output, name = name)
+  
+    return model  
 
 def ENet(input_shape=None, include_top=True, classifier_activation='softmax', num_classes=10):
 
