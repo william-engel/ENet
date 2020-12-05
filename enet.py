@@ -24,7 +24,7 @@ def ENet_Encoder(input_shape = None, input_tensor = None, name = 'encoder'):
     x = initial(input, name = "initial")
 
     ## STAGE 1
-    x, idx_1 = bottleneck(input = input, filters = 64, kernel_size = 3, dropout_rate = 0.01, downsampling=True, name = "bn1.0")
+    x, idx_1 = bottleneck(input = x, filters = 64, kernel_size = 3, dropout_rate = 0.01, downsampling=True, name = "bn1.0")
     x = bottleneck(input = x, filters = 64, kernel_size = 3, dropout_rate = 0.01, name = "bn1.1")
     x = bottleneck(input = x, filters = 64, kernel_size = 3, dropout_rate = 0.01, name = "bn1.2")
     x = bottleneck(input = x, filters = 64, kernel_size = 3, dropout_rate = 0.01, name = "bn1.3")
