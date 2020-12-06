@@ -68,28 +68,28 @@ def discriminative_loss_single(prediction, correct_label, feature_dim, label_sha
   '''
 
   ### Reshape so pixels are aligned along a vector
-  correct_label = tf.reshape(correct_label, [label_shape[1]*label_shape[0]])
-  reshaped_pred = tf.reshape(prediction, [label_shape[1]*label_shape[0], feature_dim])
+  correct_label = tf.reshape(correct_label, [label_shape[1]*label_shape[0]], name = 'OPERATION_01')
+  reshaped_pred = tf.reshape(prediction, [label_shape[1]*label_shape[0], feature_dim], name = 'OPERATION_02')
 
   ### Count instances
   unique_labels, unique_id, counts = tf.unique_with_counts(correct_label)
   counts = tf.cast(counts, tf.float32)
   num_instances = tf.size(unique_labels)
 
-  segmented_sum = tf.math.unsorted_segment_sum(reshaped_pred, unique_id, num_instances)
+  segmented_sum = tf.math.unsorted_segment_sum(reshaped_pred, unique_id, num_instances, name = 'OPERATION_03')
 
-  mu = tf.divide(segmented_sum, tf.reshape(counts, (-1, 1)))
-  mu_expand = tf.gather(mu, unique_id)
+  mu = tf.divide(segmented_sum, tf.reshape(counts, (-1, 1)), name = 'OPERATION_04')
+  mu_expand = tf.gather(mu, unique_id, name = 'OPERATION_05')
 
   ### Calculate l_var
-  distance = tf.norm(tf.subtract(mu_expand, reshaped_pred), axis=1)
+  distance = tf.norm(tf.subtract(mu_expand, reshaped_pred), axis=1, name = 'OPERATION_06')
   distance = tf.subtract(distance, delta_v)
   distance = tf.clip_by_value(distance, 0., distance)
   distance = tf.square(distance)
 
-  l_var = tf.math.unsorted_segment_sum(distance, unique_id, num_instances)
+  l_var = tf.math.unsorted_segment_sum(distance, unique_id, num_instances, name = 'OPERATION_07')
   l_var = tf.divide(l_var, counts)
-  l_var = tf.reduce_sum(l_var)
+  l_var = tf.reduce_sum(l_var, name = 'OPERATION_08')
   l_var = tf.divide(l_var, tf.cast(num_instances, tf.float32))
   
   ### Calculate l_dist
@@ -105,17 +105,17 @@ def discriminative_loss_single(prediction, correct_label, feature_dim, label_sha
   #   mu_2 - mu_3
   #   mu_3 - mu_3
 
-  mu_interleaved_rep = tf.tile(mu, [num_instances, 1])
-  mu_band_rep = tf.tile(mu, [1, num_instances])
-  mu_band_rep = tf.reshape(mu_band_rep, (num_instances*num_instances, feature_dim))
+  mu_interleaved_rep = tf.tile(mu, [num_instances, 1], name = 'OPERATION_09')
+  mu_band_rep = tf.tile(mu, [1, num_instances], name = 'OPERATION_10')
+  mu_band_rep = tf.reshape(mu_band_rep, (num_instances*num_instances, feature_dim), name = 'OPERATION_11')
 
   mu_diff = tf.subtract(mu_band_rep, mu_interleaved_rep)
   
   # Filter out zeros from same cluster subtraction
-  intermediate_tensor = tf.reduce_sum(tf.abs(mu_diff),axis=1)
+  intermediate_tensor = tf.reduce_sum(tf.abs(mu_diff),axis=1, name = 'OPERATION_12')
   zero_vector = tf.zeros(1, dtype=tf.float32)
   bool_mask = tf.not_equal(intermediate_tensor, zero_vector)
-  mu_diff_bool = tf.boolean_mask(mu_diff, bool_mask)
+  mu_diff_bool = tf.boolean_mask(mu_diff, bool_mask, name = 'OPERATION_13')
 
   mu_norm = tf.norm(mu_diff_bool, axis=1)
   mu_norm = tf.subtract(2.*delta_d, mu_norm)
